@@ -10,10 +10,10 @@ let data2 = createJSONEngine({
   d: {"z": 5},
 })
 
-const subscribe = (change) => {
+const subscribe = (change => {
   console.log(change);
-}
-data2.onChange(subscribe);
+});
+data2.onChange(subscribe, "d");
 
 data2.set("d.k.l", 8);
 data2.deleteKey("d.z");

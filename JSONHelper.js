@@ -12,37 +12,53 @@
 
 const createJSONEngine = (initialValue = {}) => {
   let value = structuredClone(initialValue);
-  const listeners = [];
+  const listeners = new Map();
 
   // Stuff for event listeners to work.
 
-  const onChange = (fn) => {
+  const onChange = (fn, path = "") => {
     if (typeof fn !== "function") {
       throw new Error("onChange: Listener must be a function");
     }
 
-    listeners.push(fn);
+    if(!listeners.has(path)) {
+      listeners.set(path, new Set());
+    }
+
+    listeners.get(path).add(fn);
   }
 
-  const offChange = (fn) => {
+  const offChange = (fn, path = "") => {
     if(typeof fn !== "function") {
       throw new Error("offChange: Listener must be a function")
     }
 
-    const index = listeners.indexOf(fn);
-    if (index !== -1) {
-      listeners.splice(index, 1);
-    }
+    const set = listeners.get(path);
+    if(!set) return;
+
+    set.delete(fn);
+    
+    if(set.size === 0)
+      listeners.delete(path);
   }
 
   const notify = (change) => {
-    listeners.forEach(fn => {
+    const path = change.path;
+    const callFunctions = new Set();
+    for(const[key, value] of listeners) {
+      if(key === "" || key.startsWith(`${path}.`) || key === path || path.startsWith(`${key}.`)) {
+        for (const fn of value) {
+          callFunctions.add(fn);
+        }
+      }
+    }
+    callFunctions.forEach(fn => {
       try {
         fn(change);
-      } catch (err) {
+      } catch(err) {
         console.error(err);
       }
-    })
+    });
   }
 
   // Stuff to edit JSON data.
