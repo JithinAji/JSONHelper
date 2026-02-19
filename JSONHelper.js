@@ -14,6 +14,9 @@ const createJSONEngine = (initialValue = {}) => {
   let value = structuredClone(initialValue);
   const listeners = new Map();
 
+  let history = [];
+  let future = [];
+
   // Stuff for event listeners to work.
 
   const onChange = (fn, path = "") => {
@@ -61,6 +64,57 @@ const createJSONEngine = (initialValue = {}) => {
     });
   }
 
+  const redo = () => {
+    if(future.length == 0) {
+      return;
+    }
+
+    let command = future.pop();
+    applyForward(command);
+  }
+
+  const undo = () => {
+    if(history.length == 0) {
+      return;
+    }
+
+    let command = history.pop();
+    applyInverse(command);
+  }
+
+  const applyInverse = (command) => {
+    switch(command.type) {
+      case "add": 
+        let path = command.path;
+        future.push(command);
+        applyDelete(path);
+        break;
+      case "delete":
+        future.push(command);
+        applySet(command.path, command.oldValue);
+        break;
+      case "update":
+        future.push(command);
+        applySet(command.path, command.oldValue);
+        break;     
+    }
+  }
+
+  const applyForward = (command) => {
+    switch(command.type) {
+      case "add":
+      case "update":
+        history.push(command);
+        applySet(command.path, command.newValue);
+        break;
+      case "delete":
+        history.push(command);
+        applyDelete(command.path);
+        break;
+    }
+  }
+
+
   // Stuff to edit JSON data.
 
   const getData = () => structuredClone(value);
@@ -70,7 +124,14 @@ const createJSONEngine = (initialValue = {}) => {
   };
 
   const set = (path, newValue) => {
-    const {parent, key} = traverseToParent(path, true);
+    const change = applySet(path, newValue);
+    if(!change) return;
+    future = [];
+    history.push(change);
+  }
+
+  const applySet = (path, newValue) => {
+    const {parent, key } = traverseToParent(path, true);
 
     const existed = key in parent;
     const oldValue = parent[key];
@@ -79,18 +140,27 @@ const createJSONEngine = (initialValue = {}) => {
     
     parent[key] = newValue;
 
-    notify({
+    const change = {
       type: existed ? "update" : "add",
       path,
       oldValue,
       newValue
-    })
+    }
 
+    notify(change);
+    return change;
   }
 
 
   const deleteKey = (path) => {
-    const {parent, key} = traverseToParent(path, false);
+    const change = applyDelete(path);
+    if(!change) return;
+    future = [];
+    history.push(change);
+  }
+
+  const applyDelete = (path) => {
+    const {parent, key } = traverseToParent(path, false);
 
     if(!(key in parent)) {
       throw new Error(`${key} does not exist`);
@@ -100,12 +170,15 @@ const createJSONEngine = (initialValue = {}) => {
 
     delete parent[key];
 
-    notify({
+    const change = {
       type: "delete",
       path,
       oldValue,
       newValue: undefined
-    });
+    }
+
+    notify(change);
+    return change;
   }
 
   const get = (path) => {
@@ -140,8 +213,9 @@ const createJSONEngine = (initialValue = {}) => {
           throw new Error (`${attribute} is not an object.`)
         }
       } else {
-        if(createMissing)
+        if(createMissing) {
           pointer[attribute] = {};
+        }
 
         else throw new Error (`${attribute} does not exist`);
       }
@@ -149,7 +223,7 @@ const createJSONEngine = (initialValue = {}) => {
     }
 
     const attribute = attributes[attributes.length - 1];
-    return {parent: pointer, key: attribute};
+    return {parent: pointer, key: attribute };
   }
   
   return {
@@ -159,7 +233,8 @@ const createJSONEngine = (initialValue = {}) => {
     deleteKey,
     onChange,
     offChange,
-    get
+    get,
+    undo
   }
    
 }
