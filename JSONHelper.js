@@ -120,7 +120,7 @@ const createJSONEngine = (initialValue = {}) => {
   const getData = () => structuredClone(value);
 
   const log = () => {
-      console.log(value);
+    console.log(JSON.stringify(value, null, 2));
   };
 
   const set = (path, newValue) => {
@@ -136,8 +136,8 @@ const createJSONEngine = (initialValue = {}) => {
     const existed = key in parent;
     const oldValue = parent[key];
 
-    if(existed && oldValue == newValue) return;
-    
+    if(existed && Object.is(oldValue, newValue)) return;
+
     parent[key] = newValue;
 
     const change = {
@@ -234,7 +234,8 @@ const createJSONEngine = (initialValue = {}) => {
     onChange,
     offChange,
     get,
-    undo
+    undo,
+    redo
   }
    
 }
