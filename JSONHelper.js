@@ -12,10 +12,14 @@
 
 const createJSONEngine = (initialValue = {}) => {
   let value = structuredClone(initialValue);
+
   const listeners = new Map();
 
   let history = [];
   let future = [];
+
+  let isBatching = false;
+  let batchChanges = [];
 
   // Stuff for event listeners to work.
 
@@ -46,6 +50,10 @@ const createJSONEngine = (initialValue = {}) => {
   }
 
   const notify = (change) => {
+    if(isBatching) {
+      batchChanges.push(change);
+      return;
+    }
     const path = change.path;
     const callFunctions = new Set();
     for(const[key, value] of listeners) {
@@ -70,6 +78,15 @@ const createJSONEngine = (initialValue = {}) => {
     }
 
     let command = future.pop();
+    if(command.type == "batch") {
+      isBatching = true;
+      for(let i = 0; i < command.changes.length; i++) {
+        applyForward(command.changes[i]);
+      }
+      history.push(command);
+      isBatching = false;
+      return;
+    }
     applyForward(command);
   }
 
@@ -79,39 +96,67 @@ const createJSONEngine = (initialValue = {}) => {
     }
 
     let command = history.pop();
-    applyInverse(command);
+    if(command.type == "batch") {
+      isBatching = true;
+      for(let i = command.changes.length -1 ; i >= 0 ; i++) {
+        applyInverse(command.changes[i]);
+      }
+      isBatching = false;
+      future.push(command);
+    }
+    else applyInverse(command);
   }
 
   const applyInverse = (command) => {
+    let change = null;
     switch(command.type) {
       case "add": 
         let path = command.path;
-        future.push(command);
-        applyDelete(path);
+        if(!isBatching) future.push(command);
+        change = applyDelete(path);
         break;
       case "delete":
-        future.push(command);
-        applySet(command.path, command.oldValue);
+        if(!isBatching) future.push(command);
+        change = applySet(command.path, command.oldValue);
         break;
       case "update":
-        future.push(command);
-        applySet(command.path, command.oldValue);
+        if(!isBatching) future.push(command);
+        change = applySet(command.path, command.oldValue);
         break;     
     }
+    if(change) notify(change);
   }
 
   const applyForward = (command) => {
     switch(command.type) {
       case "add":
       case "update":
-        history.push(command);
+        if(!isBatching) history.push(command);
         applySet(command.path, command.newValue);
         break;
       case "delete":
-        history.push(command);
+        if(!isBatching) history.push(command);
         applyDelete(command.path);
         break;
     }
+  }
+
+  // Batch function
+
+  const batch = (fn) => {
+    if(typeof fn !== "function") return;
+
+    isBatching = true;
+    fn();
+    isBatching = false;
+    let change = {
+      type: "batch",
+      changes: batchChanges
+    }
+    future = [];
+    history.push(change);
+    notify(change);
+    batchChanges = [];
   }
 
 
@@ -127,6 +172,7 @@ const createJSONEngine = (initialValue = {}) => {
     const change = applySet(path, newValue);
     if(!change) return;
     future = [];
+    notify(change);
     history.push(change);
   }
 
@@ -147,7 +193,6 @@ const createJSONEngine = (initialValue = {}) => {
       newValue
     }
 
-    notify(change);
     return change;
   }
 
@@ -156,6 +201,7 @@ const createJSONEngine = (initialValue = {}) => {
     const change = applyDelete(path);
     if(!change) return;
     future = [];
+    notify(change);
     history.push(change);
   }
 
@@ -177,7 +223,6 @@ const createJSONEngine = (initialValue = {}) => {
       newValue: undefined
     }
 
-    notify(change);
     return change;
   }
 
@@ -235,7 +280,8 @@ const createJSONEngine = (initialValue = {}) => {
     offChange,
     get,
     undo,
-    redo
+    redo,
+    batch
   }
    
 }
