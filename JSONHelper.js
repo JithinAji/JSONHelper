@@ -78,33 +78,54 @@ const createJSONEngine = (initialValue = {}) => {
     }
 
     let command = future.pop();
+
     if(command.type == "batch") {
       isBatching = true;
       for(let i = 0; i < command.changes.length; i++) {
-        applyForward(command.changes[i]);
       }
       history.push(command);
       isBatching = false;
+
+      let change = {
+        type: "batch",
+        changes: command.changes 
+      }
+      notify(change);
+
       return;
     }
-    applyForward(command);
+    let change = applyForward(command);
+    history.push(command);
+    notify(change);
   }
 
   const undo = () => {
     if(history.length == 0) {
       return;
     }
+    batchChanges = [];
 
     let command = history.pop();
+    console.log(command);
     if(command.type == "batch") {
       isBatching = true;
-      for(let i = command.changes.length -1 ; i >= 0 ; i++) {
-        applyInverse(command.changes[i]);
+      for(let i = command.changes.length -1 ; i >= 0 ; i--) {
+        batchChanges.push(applyInverse(command.changes[i]));
       }
       isBatching = false;
       future.push(command);
+
+      let change = {
+        type: "batch",
+        changes: batchChanges
+      }
+      notify(change);
+      batchChanges = [];
     }
-    else applyInverse(command);
+    else {
+      let change = applyInverse(command);
+      notify(change);
+    }
   }
 
   const applyInverse = (command) => {
@@ -124,21 +145,22 @@ const createJSONEngine = (initialValue = {}) => {
         change = applySet(command.path, command.oldValue);
         break;     
     }
-    if(change) notify(change);
+    return change;
   }
 
   const applyForward = (command) => {
+    let change = null;
     switch(command.type) {
       case "add":
       case "update":
-        if(!isBatching) history.push(command);
-        applySet(command.path, command.newValue);
+        change = applySet(command.path, command.newValue);
         break;
       case "delete":
-        if(!isBatching) history.push(command);
-        applyDelete(command.path);
+        change = applyDelete(command.path);
         break;
     }
+    
+    return change;
   }
 
   // Batch function

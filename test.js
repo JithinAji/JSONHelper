@@ -26,3 +26,4 @@ data2.batch(() => {
 
 data2.undo();
 data2.log();
+data2.redo();
