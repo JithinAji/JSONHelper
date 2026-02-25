@@ -15,9 +15,15 @@ let data2 = createJSONEngine({
 const subscribe = (change => {
   console.log(change);
 });
-data2.onChange(subscribe, "d");
+data2.onChange(subscribe);
 
-data2.log();
 
-data2.set("d.z.k", {a: 5});
+
+data2.batch(() => {
+  data2.set("b", 4);
+  data2.set("d", 5);
+})
+
+data2.undo();
 data2.log();
+data2.redo();

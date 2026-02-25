@@ -12,10 +12,14 @@
 
 const createJSONEngine = (initialValue = {}) => {
   let value = structuredClone(initialValue);
+
   const listeners = new Map();
 
   let history = [];
   let future = [];
+
+  let isBatching = false;
+  let batchChanges = [];
 
   // Stuff for event listeners to work.
 
@@ -46,6 +50,10 @@ const createJSONEngine = (initialValue = {}) => {
   }
 
   const notify = (change) => {
+    if(isBatching) {
+      batchChanges.push(change);
+      return;
+    }
     const path = change.path;
     const callFunctions = new Set();
     for(const[key, value] of listeners) {
@@ -70,7 +78,26 @@ const createJSONEngine = (initialValue = {}) => {
     }
 
     let command = future.pop();
-    applyForward(command);
+
+    if(command.type == "batch") {
+      isBatching = true;
+      for(let i = 0; i < command.changes.length; i++) {
+        applyForward(command.changes[i]);
+      }
+      history.push(command);
+      isBatching = false;
+
+      let change = {
+        type: "batch",
+        changes: command.changes 
+      }
+      if(change) notify(change);
+
+      return;
+    }
+    let change = applyForward(command);
+    history.push(command);
+    if(change) notify(change);
   }
 
   const undo = () => {
@@ -79,39 +106,75 @@ const createJSONEngine = (initialValue = {}) => {
     }
 
     let command = history.pop();
-    applyInverse(command);
+    if(command.type == "batch") {
+      isBatching = true;
+      for(let i = command.changes.length -1 ; i >= 0 ; i--) {
+        applyInverse(command.changes[i]);
+      }
+      isBatching = false;
+      future.push(command);
+
+      let change = {
+        type: "batch",
+        changes: command.changes 
+      }
+      if(change) notify(change);
+    }
+    else {
+      let change = applyInverse(command);
+      if(change) notify(change);
+      future.push(command);
+    }
   }
 
   const applyInverse = (command) => {
+    let change = null;
     switch(command.type) {
       case "add": 
         let path = command.path;
-        future.push(command);
-        applyDelete(path);
+        change = applyDelete(path);
         break;
       case "delete":
-        future.push(command);
-        applySet(command.path, command.oldValue);
+        change = applySet(command.path, command.oldValue);
         break;
       case "update":
-        future.push(command);
-        applySet(command.path, command.oldValue);
+        change = applySet(command.path, command.oldValue);
         break;     
     }
+    return change;
   }
 
   const applyForward = (command) => {
+    let change = null;
     switch(command.type) {
       case "add":
       case "update":
-        history.push(command);
-        applySet(command.path, command.newValue);
+        change = applySet(command.path, command.newValue);
         break;
       case "delete":
-        history.push(command);
-        applyDelete(command.path);
+        change = applyDelete(command.path);
         break;
     }
+    
+    return change;
+  }
+
+  // Batch function
+
+  const batch = (fn) => {
+    if(typeof fn !== "function") return;
+
+    isBatching = true;
+    fn();
+    isBatching = false;
+    let change = {
+      type: "batch",
+      changes: batchChanges
+    }
+    future = [];
+    history.push(change);
+    if(change) notify(change);
+    batchChanges = [];
   }
 
 
@@ -127,6 +190,7 @@ const createJSONEngine = (initialValue = {}) => {
     const change = applySet(path, newValue);
     if(!change) return;
     future = [];
+    notify(change);
     history.push(change);
   }
 
@@ -147,7 +211,6 @@ const createJSONEngine = (initialValue = {}) => {
       newValue
     }
 
-    notify(change);
     return change;
   }
 
@@ -156,6 +219,7 @@ const createJSONEngine = (initialValue = {}) => {
     const change = applyDelete(path);
     if(!change) return;
     future = [];
+    notify(change);
     history.push(change);
   }
 
@@ -177,7 +241,6 @@ const createJSONEngine = (initialValue = {}) => {
       newValue: undefined
     }
 
-    notify(change);
     return change;
   }
 
@@ -235,7 +298,8 @@ const createJSONEngine = (initialValue = {}) => {
     offChange,
     get,
     undo,
-    redo
+    redo,
+    batch
   }
    
 }
