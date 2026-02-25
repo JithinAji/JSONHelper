@@ -82,6 +82,7 @@ const createJSONEngine = (initialValue = {}) => {
     if(command.type == "batch") {
       isBatching = true;
       for(let i = 0; i < command.changes.length; i++) {
+        applyForward(command.changes[i]);
       }
       history.push(command);
       isBatching = false;
@@ -90,41 +91,39 @@ const createJSONEngine = (initialValue = {}) => {
         type: "batch",
         changes: command.changes 
       }
-      notify(change);
+      if(change) notify(change);
 
       return;
     }
     let change = applyForward(command);
     history.push(command);
-    notify(change);
+    if(change) notify(change);
   }
 
   const undo = () => {
     if(history.length == 0) {
       return;
     }
-    batchChanges = [];
 
     let command = history.pop();
-    console.log(command);
     if(command.type == "batch") {
       isBatching = true;
       for(let i = command.changes.length -1 ; i >= 0 ; i--) {
-        batchChanges.push(applyInverse(command.changes[i]));
+        applyInverse(command.changes[i]);
       }
       isBatching = false;
       future.push(command);
 
       let change = {
         type: "batch",
-        changes: batchChanges
+        changes: command.changes 
       }
-      notify(change);
-      batchChanges = [];
+      if(change) notify(change);
     }
     else {
       let change = applyInverse(command);
-      notify(change);
+      if(change) notify(change);
+      future.push(command);
     }
   }
 
@@ -133,15 +132,12 @@ const createJSONEngine = (initialValue = {}) => {
     switch(command.type) {
       case "add": 
         let path = command.path;
-        if(!isBatching) future.push(command);
         change = applyDelete(path);
         break;
       case "delete":
-        if(!isBatching) future.push(command);
         change = applySet(command.path, command.oldValue);
         break;
       case "update":
-        if(!isBatching) future.push(command);
         change = applySet(command.path, command.oldValue);
         break;     
     }
@@ -177,7 +173,7 @@ const createJSONEngine = (initialValue = {}) => {
     }
     future = [];
     history.push(change);
-    notify(change);
+    if(change) notify(change);
     batchChanges = [];
   }
 
