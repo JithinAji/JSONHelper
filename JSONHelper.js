@@ -18,7 +18,7 @@ const createJSONEngine = (initialValue = {}) => {
   let history = [];
   let future = [];
 
-  let isBatching = false;
+  let batchDepth = 0;
   let batchChanges = [];
 
   // Stuff for event listeners to work.
@@ -50,7 +50,7 @@ const createJSONEngine = (initialValue = {}) => {
   }
 
   const notify = (change) => {
-    if(isBatching) {
+    if(batchDepth > 0) {
       batchChanges.push(change);
       return;
     }
@@ -80,18 +80,18 @@ const createJSONEngine = (initialValue = {}) => {
     let command = future.pop();
 
     if(command.type == "batch") {
-      isBatching = true;
+      batchDepth += 1;
       for(let i = 0; i < command.changes.length; i++) {
         applyForward(command.changes[i]);
       }
       history.push(command);
-      isBatching = false;
+      batchDepth -= 1;
 
       let change = {
         type: "batch",
         changes: command.changes 
       }
-      if(change) notify(change);
+      notify(change);
 
       return;
     }
@@ -107,18 +107,18 @@ const createJSONEngine = (initialValue = {}) => {
 
     let command = history.pop();
     if(command.type == "batch") {
-      isBatching = true;
+      batchDepth += 1;
       for(let i = command.changes.length -1 ; i >= 0 ; i--) {
         applyInverse(command.changes[i]);
       }
-      isBatching = false;
+      batchDepth -= 1;
       future.push(command);
 
       let change = {
         type: "batch",
         changes: command.changes 
       }
-      if(change) notify(change);
+      notify(change);
     }
     else {
       let change = applyInverse(command);
@@ -164,16 +164,14 @@ const createJSONEngine = (initialValue = {}) => {
   const batch = (fn) => {
     if(typeof fn !== "function") return;
 
-    isBatching = true;
+    batchDepth += 1;
     fn();
-    isBatching = false;
-    let change = {
-      type: "batch",
-      changes: batchChanges
-    }
+    batchDepth -= 1;
+    let changes = [...batchChanges];
     future = [];
-    history.push(change);
-    if(change) notify(change);
+    const batchCommand = {type: "batch", changes};
+    history.push(batchCommand);
+    notify(batchCommand);
     batchChanges = [];
   }
 
