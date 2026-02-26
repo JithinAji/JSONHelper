@@ -95,7 +95,7 @@ const createJSONEngine = (initialValue = {}) => {
 
       return;
     }
-    let change = applyForward(command);
+    let change = command.execute(); 
     history.push(command);
     if(change) notify(change);
   }
@@ -121,7 +121,7 @@ const createJSONEngine = (initialValue = {}) => {
       notify(change);
     }
     else {
-      let change = applyInverse(command);
+      let change = command.undo(); 
       if(change) notify(change);
       future.push(command);
     }
@@ -185,11 +185,50 @@ const createJSONEngine = (initialValue = {}) => {
   };
 
   const set = (path, newValue) => {
-    const change = applySet(path, newValue);
+    const {parent, key } = traverseToParent(path, true);
+    const oldValue = parent[key];
+
+    let command = createSetCommand(path, oldValue, newValue);
+    let change = command.execute();
     if(!change) return;
     future = [];
     notify(change);
-    history.push(change);
+    history.push(command);
+  }
+
+  const createBatchCommand = (commands) => {
+    const execute = () => { commands.forEach(command => command.execute()) }
+    const undo = () => {
+      for(let i = commands.length - 1; i >= 0; i--) {
+        commands[i].undo();
+      }
+    }
+
+    return {execute, undo};
+  }
+
+  const createSetCommand = (path, oldValue, newValue) => {
+    const execute = () => {
+      return applySet(path, newValue);
+    }
+
+    const undo = () => {
+      return applySet(path, oldValue);
+    }
+
+    return {execute, undo};
+  }
+
+  const createDeleteCommand = (path, oldValue) => {
+    const execute = () => {
+      return applyDelete(path);
+    }
+
+    const undo = () => {
+      return applySet(path, oldValue);
+    }
+
+    return {execute, undo};
   }
 
   const applySet = (path, newValue) => {
@@ -214,11 +253,20 @@ const createJSONEngine = (initialValue = {}) => {
 
 
   const deleteKey = (path) => {
-    const change = applyDelete(path);
+    const {parent, key } = traverseToParent(path, false);
+
+    if(!(key in parent)) {
+      throw new Error(`${key} does not exist`);
+    }
+    const oldValue = parent[key];
+
+    const command = createDeleteCommand(path, oldValue);
+    const change = command.execute();
+
     if(!change) return;
     future = [];
     notify(change);
-    history.push(change);
+    history.push(command);
   }
 
   const applyDelete = (path) => {
