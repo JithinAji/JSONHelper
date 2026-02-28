@@ -117,9 +117,10 @@ const createJSONEngine = (initialValue = {}) => {
 
   const set = (path, newValue) => {
     const {parent, key } = traverseToParent(path, true);
+    const existed = key in parent;
     const oldValue = parent[key];
 
-    let command = createSetCommand(path, oldValue, newValue);
+    let command = createSetCommand(path, oldValue, newValue, existed);
     let didChange = command.execute();
     if(!didChange) return; 
 
@@ -143,7 +144,7 @@ const createJSONEngine = (initialValue = {}) => {
     return {execute, undo};
   }
 
-  const createSetCommand = (path, oldValue, newValue) => {
+  const createSetCommand = (path, oldValue, newValue, existed) => {
     const execute = () => {
       let change = applySet(path, newValue);
       if(change) {
@@ -154,7 +155,12 @@ const createJSONEngine = (initialValue = {}) => {
     }
 
     const undo = () => {
-      let change = applySet(path, oldValue);
+      let change = null;
+      if(!existed) {
+        change = applyDelete(path);
+      } else {
+        change = applySet(path, oldValue);
+      }
       if(change) {
         notify(change);
         return true;  
