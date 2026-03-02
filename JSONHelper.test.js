@@ -20,6 +20,10 @@ describe("JSONEngine", () => {
       expect(engine.getData()).toEqual({a: 1});
     });
 
+    it("throws on getting invalid path", () => {
+      expect(() => engine.get("x.y")).toThrow();
+    })
+
   });
 
   describe("Mutation",() => {
@@ -35,6 +39,10 @@ describe("JSONEngine", () => {
       engine.deleteKey("b.c.d");
       expect(engine.getData()).toEqual({a: 1, b: {c: {}}});
     });
+
+    it("throws when deleting non existing key", () => {
+      expect(() => engine.deleteKey("x")).toThrow();
+    })
   });
 
   describe("Undo Redo", () => {
@@ -47,6 +55,7 @@ describe("JSONEngine", () => {
     it("redo reverts undo", () => {
       engine.set("b", 2);
       engine.undo();
+      expect(() => engine.get("b")).toThrow();
       engine.redo();
       expect(engine.get("b")).toBe(2);
     });
@@ -55,6 +64,20 @@ describe("JSONEngine", () => {
       engine.set("a", 1);
       engine.undo();
       expect(engine.get("a")).toBe(1);
+    });
+
+    it("batch groups multiple changes in to one undo", () => {
+      engine.batch(() => {
+        engine.set("b", 2);
+        engine.set("c", 3);
+      });
+      expect(engine.getData()).toEqual({a: 1, b: 2, c: 3});
+
+      engine.undo();
+      expect(engine.getData()).toEqual({a: 1});
+
+      engine.redo();
+      expect(engine.getData()).toEqual({a: 1, b: 2, c: 3});
     })
   });
 
@@ -65,6 +88,28 @@ describe("JSONEngine", () => {
       engine.onChange(fn);
       engine.set("b", 2);
       expect(fn).toHaveBeenCalled();
+    });
+
+    it("notifies only relevant path listeners", () => {
+      const root = vi.fn();
+      const nested = vi.fn();
+
+      engine.onChange(root);
+      engine.onChange(nested, "b.c");
+
+      engine.set("b.c.d", 5);
+
+      expect(root).toHaveBeenCalled();
+      expect(nested).toHaveBeenCalled();
+    });
+
+    it("does not notify unrelated listeners", () => {
+      const fn = vi.fn();
+
+      engine.onChange(fn, "x.y");
+      engine.set("b.c", 10);
+
+      expect(fn).not.toHaveBeenCalled();
     })
-  }) 
+  });
 })
