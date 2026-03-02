@@ -266,6 +266,15 @@ const createJSONEngine = (initialValue = {}) => {
     return structuredClone(parent[key]);
   }
 
+  const has = (path) => {
+    try {
+      const {parent, key} = traverseToParent(path);
+      return key in parent;
+    } catch {
+      return false;
+    }
+  }
+
   // helper functions
 
   const checkInvalidPath = (path) => {
@@ -313,7 +322,8 @@ const createJSONEngine = (initialValue = {}) => {
     get,
     undo,
     redo,
-    batch
+    batch,
+    has
   }
    
 }
