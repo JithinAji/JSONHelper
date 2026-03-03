@@ -11,6 +11,8 @@
 
 
 const createJSONEngine = (initialValue = {}) => {
+  const MAX_HISTORY = 100;
+
   let value = structuredClone(initialValue);
 
   const listeners = new Map();
@@ -76,6 +78,9 @@ const createJSONEngine = (initialValue = {}) => {
     let command = future.pop();
 
     command.execute(); 
+    if(history.length >= MAX_HISTORY) {
+      history.shift();
+    }
     history.push(command);
   }
 
@@ -113,6 +118,9 @@ const createJSONEngine = (initialValue = {}) => {
       const commands = [...batchCommands];
       future = [];
       const batchCommand = createBatchCommand(commands); 
+      if(history.length >= MAX_HISTORY) {
+        history.shift();
+      }
       history.push(batchCommand);
       batchCommands = [];
     }
@@ -141,6 +149,9 @@ const createJSONEngine = (initialValue = {}) => {
     if(batchDepth > 0) {
       batchCommands.push(command);
     } else {
+      if(history.length >= MAX_HISTORY) {
+        history.shift();
+      }
       history.push(command);
     }
   }
@@ -245,6 +256,9 @@ const createJSONEngine = (initialValue = {}) => {
     if(batchDepth > 0) {
       batchCommands.push(command);
     } else {
+      if(history.length >= MAX_HISTORY) {
+        history.shift();
+      }
       history.push(command);
     }
   }
