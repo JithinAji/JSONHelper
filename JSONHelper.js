@@ -92,18 +92,30 @@ const createJSONEngine = (initialValue = {}) => {
   // Batch function
 
   const batch = (fn) => {
-    if(typeof fn !== "function") return;
+    if(typeof fn !== "function") {
+      throw new Error("batch: argument must be a function");
+    }
+
+    const snapShot = structuredClone(value);
 
     batchDepth += 1;
-    fn();
+    try{
+      fn();
+    } catch(err) {
+      value = snapShot;
+      batchCommands = [];
+      batchDepth = 0;
+      throw err;
+    }
     batchDepth -= 1;
 
-    if(batchCommands.length == 0) return;
-    let commands = [...batchCommands];
-    future = [];
-    let batchCommand = createBatchCommand(commands); 
-    history.push(batchCommand);
-    batchCommands = [];
+    if(batchDepth === 0 && batchCommands.length > 0) {
+      const commands = [...batchCommands];
+      future = [];
+      const batchCommand = createBatchCommand(commands); 
+      history.push(batchCommand);
+      batchCommands = [];
+    }
   }
 
 
