@@ -11,6 +11,8 @@
 
 
 const createJSONEngine = (initialValue = {}) => {
+  const MAX_HISTORY = 100;
+
   let value = structuredClone(initialValue);
 
   const listeners = new Map();
@@ -69,18 +71,18 @@ const createJSONEngine = (initialValue = {}) => {
   }
 
   const redo = () => {
-    if(future.length == 0) {
+    if(future.length === 0) {
       return;
     }
 
     let command = future.pop();
 
     command.execute(); 
-    history.push(command);
+    pushToHistory(command);
   }
 
   const undo = () => {
-    if(history.length == 0) {
+    if(history.length === 0) {
       return;
     }
 
@@ -113,7 +115,7 @@ const createJSONEngine = (initialValue = {}) => {
       const commands = [...batchCommands];
       future = [];
       const batchCommand = createBatchCommand(commands); 
-      history.push(batchCommand);
+      pushToHistory(batchCommand);
       batchCommands = [];
     }
   }
@@ -141,7 +143,7 @@ const createJSONEngine = (initialValue = {}) => {
     if(batchDepth > 0) {
       batchCommands.push(command);
     } else {
-      history.push(command);
+      pushToHistory(command);
     }
   }
 
@@ -245,7 +247,7 @@ const createJSONEngine = (initialValue = {}) => {
     if(batchDepth > 0) {
       batchCommands.push(command);
     } else {
-      history.push(command);
+      pushToHistory(command);
     }
   }
 
@@ -288,6 +290,13 @@ const createJSONEngine = (initialValue = {}) => {
   }
 
   // helper functions
+
+  const pushToHistory = (command) => {
+      if(history.length >= MAX_HISTORY) {
+        history.shift();
+      }
+      history.push(command);
+  }
 
   const checkInvalidPath = (path) => {
     if(!path || typeof path !== "string"){
