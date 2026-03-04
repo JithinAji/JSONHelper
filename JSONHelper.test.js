@@ -78,6 +78,23 @@ describe("JSONEngine", () => {
 
       engine.redo();
       expect(engine.getData()).toEqual({a: 1, b: 2, c: 3});
+    });
+
+    it("undo works with nester path", () => {
+      engine.set("b.c.d", 5);
+      engine.undo();
+
+      expect(engine.has("b.c.d")).toBe(false);
+    });
+
+    it("redo history is cleared after new mutation", () => {
+      engine.set("b", 2);
+      engine.undo();
+
+      engine.set("c", 3);
+      engine.redo();
+
+      expect(engine.has("b")).toBe(false);
     })
   });
 
