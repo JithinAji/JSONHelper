@@ -251,6 +251,23 @@ const createJSONEngine = (initialValue = {}) => {
     }
   }
 
+  const update = (path, func) => {
+    const {parent, key} = traverseToParent(path, false);
+
+    if(!(key in parent)) {
+      throw new Error(`${key} does not exist`);
+    }
+    
+    if(typeof func !== 'function') {
+      throw new Error(`argument should be a function`);
+    }
+
+    const oldValue = parent[key];
+    const newValue = func(oldValue);
+
+    set(path, newValue);
+  }
+
   const applyDelete = (path) => {
     const {parent, key } = traverseToParent(path, false);
 
@@ -344,7 +361,8 @@ const createJSONEngine = (initialValue = {}) => {
     undo,
     redo,
     batch,
-    has
+    has,
+    update
   }
    
 }
