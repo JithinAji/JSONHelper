@@ -252,7 +252,7 @@ const createJSONEngine = (initialValue = {}) => {
   }
 
   const update = (path, updater) => {
-    if(typeof func !== 'function') {
+    if(typeof updater !== 'function') {
       throw new Error(`argument should be a function`);
     }
 
