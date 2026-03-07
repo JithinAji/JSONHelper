@@ -42,6 +42,24 @@ describe("JSONEngine", () => {
 
     it("throws when deleting non existing key", () => {
       expect(() => engine.deleteKey("x")).toThrow();
+    });
+
+    it("replaces object without error", () => {
+      engine.replace({z: 2});
+      expect(engine.get("z")).toBe(2);
+    });
+
+    it("updates values", () => {
+      engine.update("a", v => v * 10);
+      expect(engine.get("a")).toBe(10);
+    });
+
+    it("throws if update recieves non function", () => {
+      expect(() => engine.update("a", 10)).toThrow();
+    });
+
+    it("throws if replace has non object value", () => {
+      expect(() => engine.replace(5)).toThrow();
     })
   });
 
@@ -95,7 +113,14 @@ describe("JSONEngine", () => {
       engine.redo();
 
       expect(engine.has("b")).toBe(false);
-    })
+    });
+
+    it("replace supports undo", () => {
+      engine.replace({z: 5});
+      engine.undo();
+
+      expect(engine.get("a")).toBe(1);
+    });
   });
 
 
