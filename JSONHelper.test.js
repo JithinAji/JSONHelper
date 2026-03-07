@@ -57,6 +57,10 @@ describe("JSONEngine", () => {
     it("throws if update recieves non function", () => {
       expect(() => engine.update("a", 10)).toThrow();
     });
+
+    it("throws if replace has non object value", () => {
+      expect(() => engine.replace(5)).toThrow();
+    })
   });
 
   describe("Undo Redo", () => {
