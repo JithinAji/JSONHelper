@@ -11,7 +11,7 @@ Pattern.
 
 ## Features
 
--   Dot-path based `set`, `get`, and `delete`
+-   Dot-path based `set`, `get`, `delete`, and `update`
 -   Undo / Redo support
 -   Batch multiple operations into a single history entry
 -   Path-scoped change listeners
@@ -46,7 +46,24 @@ const engine = createJSONEngine({
 
 ## API Reference
 
-### set(path, value)
+  Method                   Description
+  ------------------------ ------------------------
+  `set(path, value)`       Sets a value at a path
+  `get(path)`              Reads a value
+  `deleteKey(path)`        Removes a key
+  `update(path, fn)`       Computes a new value
+  `has(path)`              Checks if a key exists
+  `batch(fn)`              Groups operations
+  `undo()`                 Reverts last change
+  `redo()`                 Re-applies change
+  `onChange(fn, path?)`    Subscribe to changes
+  `offChange(fn, path?)`   Remove listener
+  `getData()`              Snapshot of state
+  `log()`                  Debug print
+
+------------------------------------------------------------------------
+
+## set(path, value)
 
 Sets a value at a dot-separated path.
 
@@ -54,12 +71,14 @@ Sets a value at a dot-separated path.
 engine.set("user.age", 25);
 ```
 
+Behavior:
+
 -   Automatically creates missing parent objects.
--   Records change in history (if actual change occurs).
+-   Records change in history if the value actually changes.
 
 ------------------------------------------------------------------------
 
-### get(path)
+## get(path)
 
 Returns a cloned value at the given path.
 
@@ -71,7 +90,7 @@ Throws an error if the key does not exist.
 
 ------------------------------------------------------------------------
 
-### deleteKey(path)
+## deleteKey(path)
 
 Deletes a key at the specified path.
 
@@ -83,7 +102,59 @@ Throws an error if the key does not exist.
 
 ------------------------------------------------------------------------
 
-### getData()
+## update(path, updater)
+
+Updates a value using a function based on the current value.
+
+``` js
+engine.update("counter", value => value + 1);
+```
+
+Example:
+
+``` js
+engine.set("counter", 5);
+
+engine.update("counter", v => v + 1);
+
+engine.get("counter"); // 6
+```
+
+Behavior:
+
+-   The updater function receives the current value.
+-   The returned value becomes the new value.
+-   If the returned value is identical to the previous value, no change
+    is recorded.
+
+------------------------------------------------------------------------
+
+## has(path)
+
+Checks whether a key exists.
+
+``` js
+engine.has("user.name");
+```
+
+Example:
+
+``` js
+engine.set("user.name", "Aji");
+
+engine.has("user.name"); // true
+engine.has("user.age");  // false
+```
+
+Behavior:
+
+-   Returns `true` if the key exists.
+-   Returns `false` if the key does not exist.
+-   Does not throw errors.
+
+------------------------------------------------------------------------
+
+## getData()
 
 Returns a deep cloned snapshot of the entire state.
 
@@ -93,7 +164,7 @@ const data = engine.getData();
 
 ------------------------------------------------------------------------
 
-### log()
+## log()
 
 Pretty prints the current state.
 
@@ -113,9 +184,11 @@ Reverts the most recent change.
 engine.undo();
 ```
 
-Behavior: - If a key was newly added → undo removes it. - If a key was
-updated → undo restores previous value. - Batch operations revert as a
-single unit.
+Behavior:
+
+-   If a key was newly added → undo removes it.
+-   If a key was updated → undo restores previous value.
+-   Batch operations revert as a single unit.
 
 ------------------------------------------------------------------------
 
@@ -213,6 +286,20 @@ engine.batch(() => {
 
 engine.undo(); // removes both b and c
 ```
+
+------------------------------------------------------------------------
+
+## Design Philosophy
+
+This engine focuses on predictable state transitions and minimal
+abstraction.
+
+Principles:
+
+-   State changes should be reversible.
+-   Nested JSON should be manageable using simple dot paths.
+-   State reads should remain immutable.
+-   Core operations should stay small and composable.
 
 ------------------------------------------------------------------------
 

@@ -251,19 +251,13 @@ const createJSONEngine = (initialValue = {}) => {
     }
   }
 
-  const update = (path, func) => {
-    const {parent, key} = traverseToParent(path, false);
-
-    if(!(key in parent)) {
-      throw new Error(`${key} does not exist`);
-    }
-    
+  const update = (path, updater) => {
     if(typeof func !== 'function') {
       throw new Error(`argument should be a function`);
     }
 
-    const oldValue = parent[key];
-    const newValue = func(oldValue);
+    const oldValue = get(path);
+    const newValue = updater(oldValue);
 
     set(path, newValue);
   }
