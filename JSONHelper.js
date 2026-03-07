@@ -54,9 +54,9 @@ const createJSONEngine = (initialValue = {}) => {
   const notify = (change) => {
     const path = change.path;
     const callFunctions = new Set();
-    for(const[key, value] of listeners) {
+    for(const[key, fns] of listeners) {
       if(key === "" || key.startsWith(`${path}.`) || key === path || path.startsWith(`${key}.`)) {
-        for (const fn of value) {
+        for (const fn of fns) {
           callFunctions.add(fn);
         }
       }
@@ -262,6 +262,44 @@ const createJSONEngine = (initialValue = {}) => {
     set(path, newValue);
   }
 
+  const replace = (newState) => {
+    if(typeof newState !== "object" || newState == null) {
+      throw new Error("replace: state must be an object")
+    }
+
+    if(Object.is(value, newState)) return;
+
+    const oldState = structuredClone(value);
+
+    const command = {
+      execute() {
+        value = structuredClone(newState);
+
+        notify({
+          type: "replace",
+          path: "",
+          oldValue: oldState,
+          newValue: structuredClone(newState)
+        })
+      },
+
+      undo() {
+        value = structuredClone(oldState);
+
+        notify({
+          type: "replace",
+          path: "",
+          oldValue: structuredClone(newState),
+          newValue: oldState
+        })
+      }
+    }
+
+    command.execute();
+    future = [];
+    pushToHistory(command);
+  }
+
   const applyDelete = (path) => {
     const {parent, key } = traverseToParent(path, false);
 
@@ -356,7 +394,8 @@ const createJSONEngine = (initialValue = {}) => {
     redo,
     batch,
     has,
-    update
+    update,
+    replace
   }
    
 }
