@@ -251,6 +251,17 @@ const createJSONEngine = (initialValue = {}) => {
     }
   }
 
+  const update = (path, updater) => {
+    if(typeof func !== 'function') {
+      throw new Error(`argument should be a function`);
+    }
+
+    const oldValue = get(path);
+    const newValue = updater(oldValue);
+
+    set(path, newValue);
+  }
+
   const applyDelete = (path) => {
     const {parent, key } = traverseToParent(path, false);
 
@@ -344,7 +355,8 @@ const createJSONEngine = (initialValue = {}) => {
     undo,
     redo,
     batch,
-    has
+    has,
+    update
   }
    
 }
