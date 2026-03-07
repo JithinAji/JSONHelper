@@ -300,6 +300,11 @@ const createJSONEngine = (initialValue = {}) => {
     pushToHistory(command);
   }
 
+  const clearHistory = () => {
+    history = [];
+    future = [];
+  }
+
   const applyDelete = (path) => {
     const {parent, key } = traverseToParent(path, false);
 
@@ -395,7 +400,8 @@ const createJSONEngine = (initialValue = {}) => {
     batch,
     has,
     update,
-    replace
+    replace,
+    clearHistory
   }
    
 }
