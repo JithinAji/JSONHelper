@@ -2,11 +2,26 @@
   "name": "jsonhelper",
   "version": "1.0.0",
   "type": "module",
+  "main": "src/json-engine.js",
+  "description": "Lightweight JSON state engine with undo, redo, batching and path based listeners",
+  "keywords": [
+    "json",
+    "state",
+    "undo",
+    "redo",
+    "state-management"
+  ],
+  "files": [
+    "src",
+    "types",
+    "README.md"
+  ],
   "scripts": {
     "test": "vitest",
     "test:run": "vitest run"
   },
   "devDependencies": {
     "vitest": "^4.0.18"
-  }
+  },
+  "license": "MIT"
 }
