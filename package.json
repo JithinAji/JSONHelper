@@ -1,5 +1,5 @@
 {
-  "name": "jsonhelper",
+  "name": "@jithinaji/json-engine",
   "version": "1.0.0",
   "type": "module",
   "main": "src/json-engine.js",
