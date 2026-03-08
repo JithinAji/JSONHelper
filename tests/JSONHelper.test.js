@@ -1,5 +1,5 @@
 import {describe, it, expect, beforeEach, vi} from "vitest";
-import createJSONEngine from "./JSONHelper.js";
+import createJSONEngine from "../src/json-engine.js";
 
 describe("JSONEngine", () => {
   let engine;
