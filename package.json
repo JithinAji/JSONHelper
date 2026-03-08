@@ -4,6 +4,7 @@
   "type": "module",
   "main": "src/json-engine.js",
   "description": "Lightweight JSON state engine with undo, redo, batching and path based listeners",
+  "types": "types/json-engine.d.ts",
   "keywords": [
     "json",
     "state",
