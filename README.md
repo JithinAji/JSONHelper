@@ -1,166 +1,130 @@
 # JSON Engine
 
-A lightweight JSON state manager with built-in **undo/redo**, **batch
-operations**, and **path-based change listeners**.
+A lightweight **JSON state manager** with built‑in **undo/redo**,
+**batch operations**, and **path‑based listeners**.
 
-This engine simplifies working with deeply nested JSON objects while
-keeping state transitions predictable and reversible using the Command
-Pattern.
+The engine helps manage complex JSON structures safely by tracking
+mutations using the **Command Pattern**.\
+All state changes are reversible and observable.
 
 ------------------------------------------------------------------------
 
 ## Features
 
--   Dot-path based `set`, `get`, `delete`, and `update`
--   Undo / Redo support
--   Batch multiple operations into a single history entry
--   Path-scoped change listeners
+-   Dot‑path based state updates (`a.b.c`)
+-   Undo / Redo history
+-   Batch operations (transaction-like updates)
+-   Change listeners scoped by path
 -   Immutable reads using `structuredClone`
--   No dependencies
+-   Lightweight and dependency‑free
 
 ------------------------------------------------------------------------
 
-## Installation
+# Installation
 
-Import the engine into your project:
+Simply import the file into your project.
 
 ``` js
-import createJSONEngine from "./createJSONEngine";
+import createJSONEngine from "./JSONHelper.js"
 ```
+
+No dependencies are required.
 
 ------------------------------------------------------------------------
 
-## Getting Started
-
-### Create an Engine
+# Creating an Engine
 
 ``` js
 const engine = createJSONEngine({
   user: {
     name: "Aji"
   }
-});
+})
 ```
 
 ------------------------------------------------------------------------
 
-## API Reference
+# API Reference
 
-  Method                   Description
-  ------------------------ ------------------------
-  `set(path, value)`       Sets a value at a path
-  `get(path)`              Reads a value
-  `deleteKey(path)`        Removes a key
-  `update(path, fn)`       Computes a new value
-  `has(path)`              Checks if a key exists
-  `batch(fn)`              Groups operations
-  `undo()`                 Reverts last change
-  `redo()`                 Re-applies change
-  `onChange(fn, path?)`    Subscribe to changes
-  `offChange(fn, path?)`   Remove listener
-  `getData()`              Snapshot of state
-  `log()`                  Debug print
+## getData()
 
-------------------------------------------------------------------------
-
-## set(path, value)
-
-Sets a value at a dot-separated path.
+Returns a deep clone of the entire JSON state.
 
 ``` js
-engine.set("user.age", 25);
+const data = engine.getData()
 ```
-
-Behavior:
-
--   Automatically creates missing parent objects.
--   Records change in history if the value actually changes.
 
 ------------------------------------------------------------------------
 
 ## get(path)
 
-Returns a cloned value at the given path.
+Returns a cloned value from the specified path.
 
 ``` js
-const name = engine.get("user.name");
+engine.get("user.name")
 ```
 
-Throws an error if the key does not exist.
-
-------------------------------------------------------------------------
-
-## deleteKey(path)
-
-Deletes a key at the specified path.
-
-``` js
-engine.deleteKey("user.age");
-```
-
-Throws an error if the key does not exist.
-
-------------------------------------------------------------------------
-
-## update(path, updater)
-
-Updates a value using a function based on the current value.
-
-``` js
-engine.update("counter", value => value + 1);
-```
-
-Example:
-
-``` js
-engine.set("counter", 5);
-
-engine.update("counter", v => v + 1);
-
-engine.get("counter"); // 6
-```
-
-Behavior:
-
--   The updater function receives the current value.
--   The returned value becomes the new value.
--   If the returned value is identical to the previous value, no change
-    is recorded.
+Throws if the path does not exist.
 
 ------------------------------------------------------------------------
 
 ## has(path)
 
-Checks whether a key exists.
+Checks if a path exists.
 
 ``` js
-engine.has("user.name");
+engine.has("user.name")
 ```
-
-Example:
-
-``` js
-engine.set("user.name", "Aji");
-
-engine.has("user.name"); // true
-engine.has("user.age");  // false
-```
-
-Behavior:
-
--   Returns `true` if the key exists.
--   Returns `false` if the key does not exist.
--   Does not throw errors.
 
 ------------------------------------------------------------------------
 
-## getData()
+## set(path, value)
 
-Returns a deep cloned snapshot of the entire state.
+Sets a value using dot‑notation paths.
 
 ``` js
-const data = engine.getData();
+engine.set("user.age", 25)
 ```
+
+If intermediate objects do not exist they are created automatically.
+
+------------------------------------------------------------------------
+
+## deleteKey(path)
+
+Deletes a key at a path.
+
+``` js
+engine.deleteKey("user.age")
+```
+
+Throws if the key does not exist.
+
+------------------------------------------------------------------------
+
+## update(path, updater)
+
+Updates a value using a function.
+
+``` js
+engine.update("counter", v => v + 1)
+```
+
+Useful for modifying state based on its current value.
+
+------------------------------------------------------------------------
+
+## replace(newState)
+
+Replaces the entire JSON state.
+
+``` js
+engine.replace({
+  count: 10
+})
+```
+
+The previous state is stored in history so it can be undone.
 
 ------------------------------------------------------------------------
 
@@ -169,97 +133,99 @@ const data = engine.getData();
 Pretty prints the current state.
 
 ``` js
-engine.log();
+engine.log()
 ```
 
 ------------------------------------------------------------------------
 
-## Undo / Redo
+# Undo / Redo
 
-### undo()
+## undo()
 
 Reverts the most recent change.
 
 ``` js
-engine.undo();
+engine.undo()
 ```
-
-Behavior:
-
--   If a key was newly added → undo removes it.
--   If a key was updated → undo restores previous value.
--   Batch operations revert as a single unit.
 
 ------------------------------------------------------------------------
 
-### redo()
+## redo()
 
 Re-applies the last undone change.
 
 ``` js
-engine.redo();
+engine.redo()
 ```
 
 ------------------------------------------------------------------------
 
-## Batch Operations
+## clearHistory()
 
-Group multiple changes into a single history entry.
+Clears both undo and redo history stacks.
+
+``` js
+engine.clearHistory()
+```
+
+------------------------------------------------------------------------
+
+# Batch Operations
+
+Groups multiple updates into a single history entry.
 
 ``` js
 engine.batch(() => {
-  engine.set("a", 1);
-  engine.set("b", 2);
-});
+  engine.set("a", 1)
+  engine.set("b", 2)
+})
 ```
 
-Calling:
+Calling `undo()` will revert both operations together.
 
-``` js
-engine.undo();
-```
-
-Will revert both changes together.
+If an error occurs during the batch, all changes are rolled back.
 
 ------------------------------------------------------------------------
 
-## Change Listeners
+# Change Listeners
 
-### Listen to All Changes
+Listeners allow observing state changes.
 
-``` js
-engine.onChange((change) => {
-  console.log(change);
-});
-```
-
-------------------------------------------------------------------------
-
-### Listen to a Specific Path
+## Listen to All Changes
 
 ``` js
-engine.onChange((change) => {
-  console.log("User changed:", change);
-}, "user");
+engine.onChange(change => {
+  console.log(change)
+})
 ```
 
 ------------------------------------------------------------------------
 
-### Remove a Listener
+## Listen to a Specific Path
 
 ``` js
-engine.offChange(listenerFunction, "user");
+engine.onChange(change => {
+  console.log("User changed:", change)
+}, "user")
 ```
 
 ------------------------------------------------------------------------
 
-## Change Object Format
+## Remove a Listener
 
-Every state mutation emits a change object:
+``` js
+engine.offChange(listener, "user")
+```
+
+------------------------------------------------------------------------
+
+# Change Object Format
+
+Every mutation emits a change object.
 
 ``` js
 {
-  type: "add" | "update" | "delete",
+  type: "add" | "update" | "delete" | "replace",
   path: "user.name",
   oldValue: previousValue,
   newValue: newValue
@@ -268,41 +234,39 @@ Every state mutation emits a change object:
 
 ------------------------------------------------------------------------
 
-## Example
+# Example
 
 ``` js
-const engine = createJSONEngine();
+const engine = createJSONEngine()
 
-engine.set("a", 1);
-engine.set("a", 2);
+engine.set("a", 1)
+engine.set("a", 2)
 
-engine.undo(); // a = 1
-engine.redo(); // a = 2
+engine.undo() // a = 1
+engine.redo() // a = 2
 
 engine.batch(() => {
-  engine.set("b", 3);
-  engine.set("c", 4);
-});
+  engine.set("b", 3)
+  engine.set("c", 4)
+})
 
-engine.undo(); // removes both b and c
+engine.undo() // removes b and c
 ```
 
 ------------------------------------------------------------------------
 
-## Design Philosophy
+# Design Notes
 
-This engine focuses on predictable state transitions and minimal
-abstraction.
+The engine internally uses:
 
-Principles:
+-   **Command Pattern** for reversible operations
+-   **Transaction batching**
+-   **Path-based change propagation**
 
--   State changes should be reversible.
--   Nested JSON should be manageable using simple dot paths.
--   State reads should remain immutable.
--   Core operations should stay small and composable.
+This allows predictable and reversible state transitions.
 
 ------------------------------------------------------------------------
 
-## License
+# License
 
-MIT License
+MIT
