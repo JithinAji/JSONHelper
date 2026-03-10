@@ -4,12 +4,6 @@
 
 A lightweight **JSON state manager** with built‑in **undo/redo**, **batch operations**, and **path‑based listeners**.
 
-## Live Playground
-
-Try the engine in your browser:
-
-👉 https://jithinaji.github.io/JSONHelper/
-
 The engine helps manage complex JSON structures safely by tracking mutations using the **Command Pattern**.  
 All state changes are reversible and observable.
 
@@ -17,6 +11,17 @@ All state changes are reversible and observable.
 https://www.npmjs.com/package/@jithinaji/json-engine
 
 ---
+
+## Live Playground
+
+Try the engine in your browser:
+
+👉 https://jithinaji.github.io/JSONHelper/
+## Live Playground
+
+Try the engine in your browser:
+
+👉 https://jithinaji.github.io/JSONHelper/
 
 # Installation
 
