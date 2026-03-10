@@ -17,11 +17,6 @@ https://www.npmjs.com/package/@jithinaji/json-engine
 Try the engine in your browser:
 
 👉 https://jithinaji.github.io/JSONHelper/
-## Live Playground
-
-Try the engine in your browser:
-
-👉 https://jithinaji.github.io/JSONHelper/
 
 # Installation
 
