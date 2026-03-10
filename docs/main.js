@@ -1,4 +1,4 @@
-import createJSONEngine from "../src/json-engine.js"
+import createJSONEngine from "https://cdn.jsdelivr.net/npm/@jithinaji/json-engine/+esm"
 
 const engine = createJSONEngine({
   counter: 0
