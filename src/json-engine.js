@@ -13,7 +13,18 @@
 const createJSONEngine = (initialValue = {}) => {
   const MAX_HISTORY = 100;
 
-  let value = structuredClone(initialValue);
+  // let value = structuredClone(initialValue);
+  const handler = {
+    set() {
+      throw new Error("Object mutation is not allowed")
+    }
+
+    delete() {
+      throw new Error("Object deletion is not allowed")
+    }
+  }
+
+  let value = new Proxy(initialValue, handler)
 
   const listeners = new Map();
 
