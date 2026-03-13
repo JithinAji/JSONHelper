@@ -13,14 +13,20 @@
 const createJSONEngine = (initialValue = {}) => {
   const MAX_HISTORY = 100;
 
-  // let value = structuredClone(initialValue);
   const handler = {
-    set() {
-      throw new Error("Object mutation is not allowed")
-    }
-
-    delete() {
+    set(target, prop, value, receiver) {
+      throw new Error("State is readonly. Use engine.set()")
+    },
+    deleteProperty(target, prop) {
       throw new Error("Object deletion is not allowed")
+    },
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if(value !== null && typeof value === "object") {
+        return new Proxy(value, handler)
+      } else {
+        return value
+      }
     }
   }
 
