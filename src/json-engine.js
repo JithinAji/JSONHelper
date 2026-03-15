@@ -13,7 +13,26 @@
 const createJSONEngine = (initialValue = {}) => {
   const MAX_HISTORY = 100;
 
-  let value = structuredClone(initialValue);
+  let rawState = structuredClone(initialValue);
+
+  const handler = {
+    set(target, prop, value, receiver) {
+      throw new Error("State is readonly. Use engine.set()")
+    },
+    deleteProperty(target, prop) {
+      throw new Error("Object deletion is not allowed")
+    },
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if(value !== null && typeof value === "object") {
+        return new Proxy(value, handler)
+      } else {
+        return value
+      }
+    }
+  }
+
+  let publicState = new Proxy(rawState, handler)
 
   const listeners = new Map();
 
@@ -98,13 +117,14 @@ const createJSONEngine = (initialValue = {}) => {
       throw new Error("batch: argument must be a function");
     }
 
-    const snapShot = structuredClone(value);
+    const snapShot = structuredClone(rawState);
 
     batchDepth += 1;
     try{
       fn();
     } catch(err) {
-      value = snapShot;
+      Object.keys(rawState).forEach(k => delete rawState[k]);
+      Object.assign(rawState, structuredClone(snapShot));
       batchCommands = [];
       batchDepth = 0;
       throw err;
@@ -123,10 +143,8 @@ const createJSONEngine = (initialValue = {}) => {
 
   // Stuff to edit JSON data.
 
-  const getData = () => structuredClone(value);
-
   const log = () => {
-    console.log(JSON.stringify(value, null, 2));
+    console.log(JSON.stringify(rawState, null, 2));
   };
 
   const set = (path, newValue) => {
@@ -267,13 +285,14 @@ const createJSONEngine = (initialValue = {}) => {
       throw new Error("replace: state must be an object")
     }
 
-    if(Object.is(value, newState)) return;
+    if(Object.is(rawState, newState)) return;
 
-    const oldState = structuredClone(value);
+    const oldState = structuredClone(rawState);
 
     const command = {
       execute() {
-        value = structuredClone(newState);
+        Object.keys(rawState).forEach(k => delete rawState[k]);
+        Object.assign(rawState, structuredClone(newState));
 
         notify({
           type: "replace",
@@ -284,7 +303,8 @@ const createJSONEngine = (initialValue = {}) => {
       },
 
       undo() {
-        value = structuredClone(oldState);
+        Object.keys(rawState).forEach(k => delete rawState[k]);
+        Object.assign(rawState, structuredClone(oldState));
 
         notify({
           type: "replace",
@@ -364,7 +384,7 @@ const createJSONEngine = (initialValue = {}) => {
     checkInvalidPath(path);
 
     let attributes = path.split(".");
-    let pointer = value;
+    let pointer = rawState;
 
     for(let i = 0; i < attributes.length - 1; i++) {
       const attribute = attributes[i];
@@ -388,7 +408,7 @@ const createJSONEngine = (initialValue = {}) => {
   }
   
   return {
-    getData,
+    state: publicState,
     log,
     set,
     deleteKey,

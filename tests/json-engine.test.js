@@ -11,9 +11,11 @@ describe("JSONEngine", () => {
   describe("Get and has", () => {
 
     it("getData returns a copy and does not mutate internal state", () => {
-     const data = engine.getData();
-      data.a = 0;
-      expect(engine.get("a")).toBe(1);
+      expect(engine.state.a).toBe(1);
+
+      expect(() => {
+        engine.state.a = 5
+      }).toThrow();
     });
 
     it("gets correct value using getData", () => {
