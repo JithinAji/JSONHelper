@@ -9,19 +9,6 @@ describe("JSONEngine", () => {
   });
 
   describe("Get and has", () => {
-
-    it("getData returns a copy and does not mutate internal state", () => {
-      expect(engine.state.a).toBe(1);
-
-      expect(() => {
-        engine.state.a = 5
-      }).toThrow();
-    });
-
-    it("gets correct value using getData", () => {
-      expect(engine.getData()).toEqual({a: 1});
-    });
-
     it("throws on getting invalid path", () => {
       expect(() => engine.get("x.y")).toThrow();
     })
@@ -36,6 +23,35 @@ describe("JSONEngine", () => {
   });
 
   describe("Mutation",() => {
+    it("state is readonly", () => {
+      expect(engine.state.a).toBe(1);
+    });
+
+    it("prevents writing to state", () => {
+      expect(() => {
+        engine.state.a = 5
+      }).toThrow();
+    })
+    it("prevents nested mutation", () => {
+      engine.set("b.c", 10)
+
+      expect(() => {
+        engine.state.b.c = 20
+      }).toThrow()
+    })
+
+    it("prevents deleting properties", () => {
+      expect(() => {
+        delete engine.state.a
+      }).toThrow()
+    })
+
+    it("state reflects replace", () => {
+      engine.replace({x: 5})
+
+      expect(engine.state.x).toBe(5)
+    })
+
     it("adds a new key using set", () => {
       engine.set("b", 2);
       expect(engine.get("b")).toBe(2);
@@ -46,7 +62,7 @@ describe("JSONEngine", () => {
       engine.set("b.c.d", 3);
       expect(engine.get("b.c.d")).toBe(3);
       engine.deleteKey("b.c.d");
-      expect(engine.getData()).toEqual({a: 1, b: {c: {}}});
+      expect(engine.state).toEqual({a: 1, b: {c: {}}});
     });
 
     it("throws when deleting non existing key", () => {
@@ -116,13 +132,13 @@ describe("JSONEngine", () => {
         engine.set("b", 2);
         engine.set("c", 3);
       });
-      expect(engine.getData()).toEqual({a: 1, b: 2, c: 3});
+      expect(engine.state).toEqual({a: 1, b: 2, c: 3});
 
       engine.undo();
-      expect(engine.getData()).toEqual({a: 1});
+      expect(engine.state).toEqual({a: 1});
 
       engine.redo();
-      expect(engine.getData()).toEqual({a: 1, b: 2, c: 3});
+      expect(engine.state).toEqual({a: 1, b: 2, c: 3});
     });
 
     it("undo works with nested path", () => {
