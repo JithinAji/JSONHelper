@@ -4,7 +4,7 @@
     <title>JSON engine playground</title>
     <style>
       body {
-        font-family: system-ui, -apple-system, sans-serif
+        font-family: system-ui, -apple-system, sans-serif;
         background: #f4f6f8;
         padding: 30px;
         color: #333;
@@ -12,6 +12,11 @@
 
       h2 {
         margin-bottom: 10px;
+      }
+
+      .app {
+        max-width: 800px;
+        margin: 0 auto;
       }
 
       #controls {
@@ -38,41 +43,64 @@
       }
 
       #state {
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 12px;
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 8px;
+        padding: 14px;
         font-family: monospace;
         margin-bottom: 20px;
       }
 
       #log {
-        background: #111;
-        color: #00ff9c;
+        background: #020617;
+        color: #22c55e;
         padding: 12px;
-        border-radius: 6px;
+        border-radius: 8px;
         max-height: 220px;
         overflow-y: auto;
         font-family: monospace;
         white-space: pre-wrap;
       }
+
+      .card {
+        background: white;
+        padding: 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      }
+
+      #controls {
+        margin-bottom: 20px;
+      }
       </style>
   </head>
   <body>
-    <h2>JSON Engine Playground</h2>
+    <div id="app">
+      <h2>JSON Engine Playground</h2>
 
-    <div>
-      <button id="add">Update counter</button>
-      <button id="undo">Undo</button>
-      <button id="redo">Redo</button>
-      <button id="batch">Batch Update</button>
+      <p style="margin-bottom:20px; color:#666;">
+        A simple JSON state engine with undo, redo and batching
+      </p>
+
+      <div id="controls">
+        <button id="add">Update counter</button>
+        <button id="undo">Undo</button>
+        <button id="redo">Redo</button>
+        <button id="batch">Batch Update</button>
+      </div>
+
+      <div class="card">
+        <h3>State (Readonly)</h3>
+        <pre id="state"></pre>
+      </div>
+      
+      <div class="card">
+        <h3>Change Log (Events)</h3>
+        <pre id="log"></pre>
+      </div>
+
     </div>
-
-    <h3>State</h3>
-    <pre id="state"></pre>
-
-    <h3>Change Log</h3>
-    <pre id="log"></pre>
 
     <script type="module" src="./main.js"></script>
   </body>
