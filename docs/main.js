@@ -9,7 +9,7 @@ const logView = document.getElementById("log")
 
 
 function render() {
-  stateView.textContent = JSON.stringify(engine.getData(), null, 2)
+  stateView.textContent = JSON.stringify(engine.state, null, 2)
 }
 
 engine.onChange(change => {
