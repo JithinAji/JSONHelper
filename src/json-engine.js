@@ -13,7 +13,16 @@
 const createJSONEngine = (initialValue = {}) => {
   const MAX_HISTORY = 100;
 
-  let rawState = structuredClone(initialValue);
+  let rawState = structuredClone(initialValue)
+
+  const proxyCache = new WeakMap()
+
+  const isPlainObject = (val) => 
+    typeof val === "object" &&
+      val !== null &&
+(val.constructor === Object || Array.isArray(val))
+
+
 
   const handler = {
     set(target, prop, value, receiver) {
@@ -23,16 +32,26 @@ const createJSONEngine = (initialValue = {}) => {
       throw new Error("Object deletion is not allowed")
     },
     get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver);
-      if(value !== null && typeof value === "object") {
-        return new Proxy(value, handler)
-      } else {
-        return value
-      }
+      const value = Reflect.get(target, prop, receiver)
+      
+      if(isPlainObject(value)) return getProxy(value) 
+      
+      return value
     }
   }
 
-  let publicState = new Proxy(rawState, handler)
+  const getProxy = (obj) => {
+    if(proxyCache.has(obj)) {
+      return proxyCache.get(obj)
+    }
+
+    const proxy = new Proxy(obj, handler)
+    proxyCache.set(obj, proxy)
+
+    return proxy
+  }
+
+  let publicState = getProxy(rawState) 
 
   const listeners = new Map();
 
